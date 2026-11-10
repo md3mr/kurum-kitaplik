@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Kitaplığım{% endblock %}
+{% block content %}
+  <h1>Kitaplığım ({{ books|length }})</h1>
+  <p><a href="{% url 'book_add' %}">+ Kitap Ekle</a></p>
+
+  {% for book in books %}
+    <div style="border:1px solid #ccc; padding:8px; margin:8px 0">
+      <strong>{{ book.title }}</strong> — {{ book.author }}
+      {% if book.publisher %}<br>{{ book.publisher }}{% endif %}
+      {% if book.isbn %}<br>ISBN: {{ book.isbn }}{% endif %}
+      <br>
+      {% if book.holder %}
+        🔴 Ödünç verildi: {{ book.holder.username }}
+      {% elif book.in_pool %}
+        🟢 Havuzda
+      {% else %}
+        ⚪ Sadece kitaplığımda
+      {% endif %}
+      <form method="post" action="{% url 'book_toggle_pool' book.pk %}" style="display:inline">
+        {% csrf_token %}
+        <button type="submit">{% if book.in_pool %}Havuzdan Kaldır{% else %}Havuza Ekle{% endif %}</button>
+      </form>
+    </div>
+  {% empty %}
+    <p>Henüz kitap eklemedin.</p>
+  {% endfor %}
+{% endblock %}

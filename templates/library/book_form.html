@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Kitap Ekle{% endblock %}
+{% block content %}
+  <p><a href="{% url 'my_books' %}">← Kitaplığıma Dön</a></p>
+  <h1>Kitap Ekle</h1>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Kaydet</button>
+  </form>
+{% endblock %}
