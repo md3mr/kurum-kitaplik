@@ -28,16 +28,11 @@ class BookRequest(models.Model):
         REJECTED = "rejected", "Reddedildi"
         CANCELLED = "cancelled", "İptal edildi"
 
-    class Kind(models.TextChoices):
-        LOAN = "loan", "Ödünç"
-        GIFT = "gift", "Hediye"
-
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="requests")
     requester = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
                                   related_name="sent_requests")
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
                               related_name="received_requests")
-    kind = models.CharField(max_length=10, choices=Kind.choices, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices,
                               default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)

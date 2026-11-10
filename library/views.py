@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -87,3 +88,77 @@ def book_toggle_pool(request, pk):
         book.in_pool = not book.in_pool
         book.save(update_fields=["in_pool"])
     return redirect("my_books")
+
+
+@login_required
+def requests_list(request):
+    tab = request.GET.get("tab", "in")
+    base = BookRequest.objects.select_related("book", "requester", "owner")
+    if tab == "out":
+        items = base.filter(requester=request.user).order_by("-created_at")
+    else:
+        tab = "in"
+        items = base.filter(owner=request.user).order_by("-created_at")
+    incoming_open = BookRequest.objects.filter(
+        owner=request.user,
+        status__in=[BookRequest.Status.PENDING, BookRequest.Status.RECEIVED],
+    ).count()
+    return render(request, "library/requests.html", {
+        "items": items, "tab": tab, "incoming_open": incoming_open,
+    })
+
+
+@login_required
+@transaction.atomic
+def request_action(request, pk, action):
+    if request.method != "POST":
+        return redirect("requests")
+    req = get_object_or_404(
+        BookRequest.objects.select_for_update().select_related("book"), pk=pk
+    )
+    book = req.book
+    me = request.user
+    S = BookRequest.Status
+    is_owner = req.owner_id == me.id
+    is_requester = req.requester_id == me.id
+    tab = "in" if is_owner else "out"
+
+    if action == "approve" and is_owner and req.status == S.PENDING:
+        if book.holder_id:
+            messages.error(request, "Bu kitap şu an başkasında.")
+        else:
+            req.status = S.APPROVED
+            req.save()
+            book.holder = req.requester
+            book.save(update_fields=["holder"])
+            messages.success(request, "Talep onaylandı.")
+
+    elif action == "reject" and is_owner and req.status == S.PENDING:
+        req.status = S.REJECTED
+        req.save()
+        messages.info(request, "Talep reddedildi.")
+
+    elif action == "cancel" and is_requester and req.status in (S.PENDING, S.APPROVED):
+        if req.status == S.APPROVED and book.holder_id == me.id:
+            book.holder = None
+            book.save(update_fields=["holder"])
+        req.status = S.CANCELLED
+        req.save()
+        messages.info(request, "Talepten vazgeçildi.")
+
+    elif action == "received" and is_requester and req.status == S.APPROVED:
+        req.status = S.RECEIVED
+        req.save()
+        messages.success(request, "Teslim alındı olarak işaretlendi.")
+
+    elif action == "returned" and is_owner and req.status in (S.APPROVED, S.RECEIVED):
+        req.status = S.RETURNED
+        req.save()
+        book.holder = None
+        book.save(update_fields=["holder"])
+        messages.success(request, "Kitap iade alındı, tekrar havuzda müsait.")
+
+    else:
+        messages.error(request, "Bu işlem şu an yapılamaz.")
+
+    return redirect(f"/requests/?tab={tab}")

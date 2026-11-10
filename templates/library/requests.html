@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Taleplerim{% endblock %}
+{% block content %}
+  <h1>Taleplerim</h1>
+  <p>
+    <a href="?tab=in">{% if tab == "in" %}<strong>Gelen{% if incoming_open %} ({{ incoming_open }}){% endif %}</strong>{% else %}Gelen{% if incoming_open %} ({{ incoming_open }}){% endif %}{% endif %}</a>
+    |
+    <a href="?tab=out">{% if tab == "out" %}<strong>Giden</strong>{% else %}Giden{% endif %}</a>
+  </p>
+
+  {% for r in items %}
+    <div style="border:1px solid #ccc; padding:8px; margin:8px 0">
+      {% if tab == "in" %}📥 <strong>{{ r.requester.username }}</strong>{% else %}📤 <strong>Ben</strong>{% endif %}
+      → {{ r.book.title }} <small>({{ r.book.author }})</small>
+      <br>
+      {% if tab == "out" %}Sahibi: {{ r.owner.username }} · {% endif %}
+      {{ r.created_at|timesince }} önce
+      <br>Durum: <strong>{{ r.get_status_display }}</strong>
+      <br>
+
+      {% if tab == "in" %}
+        {% if r.status == "pending" %}
+          <form method="post" action="{% url 'request_action' r.pk 'approve' %}" style="display:inline">{% csrf_token %}<button>Onayla</button></form>
+          <form method="post" action="{% url 'request_action' r.pk 'reject' %}" style="display:inline">{% csrf_token %}<button>Reddet</button></form>
+        {% elif r.status == "approved" or r.status == "received" %}
+          <form method="post" action="{% url 'request_action' r.pk 'returned' %}" style="display:inline">{% csrf_token %}<button>İade Alındı</button></form>
+        {% endif %}
+      {% else %}
+        {% if r.status == "pending" %}
+          <form method="post" action="{% url 'request_action' r.pk 'cancel' %}" style="display:inline">{% csrf_token %}<button>Vazgeç</button></form>
+        {% elif r.status == "approved" %}
+          <form method="post" action="{% url 'request_action' r.pk 'received' %}" style="display:inline">{% csrf_token %}<button>Teslim Aldım</button></form>
+          <form method="post" action="{% url 'request_action' r.pk 'cancel' %}" style="display:inline">{% csrf_token %}<button>Vazgeç</button></form>
+        {% endif %}
+      {% endif %}
+    </div>
+  {% empty %}
+    <p>Talep yok.</p>
+  {% endfor %}
+{% endblock %}
