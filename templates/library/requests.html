@@ -25,17 +25,39 @@
             <div class="acts">
               {% if tab == 'in' %}
                 {% if r.status == 'pending' %}
-                  <form class="inline" method="post" action="{% url 'request_action' r.pk 'approve' %}">{% csrf_token %}<button class="btn btn-primary btn-sm">Onayla</button></form>
-                  <form class="inline" method="post" action="{% url 'request_action' r.pk 'reject' %}">{% csrf_token %}<button class="btn btn-sm btn-danger">Reddet</button></form>
+                  <form class="inline" method="post" action="{% url 'request_action' r.pk 'approve' %}">
+                    {% csrf_token %}
+                    <button class="btn btn-primary btn-sm">Onayla</button>
+                  </form>
+                  <form class="inline" method="post" action="{% url 'request_action' r.pk 'reject' %}"
+                        onsubmit="return confirm('{{ r.book.title|escapejs }} için gelen talebi reddetmek istediğine emin misin?');">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-danger">Reddet</button>
+                  </form>
                 {% elif r.status == 'approved' or r.status == 'received' %}
-                  <form class="inline" method="post" action="{% url 'request_action' r.pk 'returned' %}">{% csrf_token %}<button class="btn btn-primary btn-sm">İade Alındı</button></form>
+                  <form class="inline" method="post" action="{% url 'request_action' r.pk 'returned' %}"
+                        onsubmit="return confirm('{{ r.book.title|escapejs }} iade alındı olarak işaretlensin mi?');">
+                    {% csrf_token %}
+                    <button class="btn btn-primary btn-sm">İade Alındı</button>
+                  </form>
                 {% endif %}
               {% else %}
                 {% if r.status == 'pending' %}
-                  <form class="inline" method="post" action="{% url 'request_action' r.pk 'cancel' %}">{% csrf_token %}<button class="btn btn-sm btn-danger">Vazgeç</button></form>
+                  <form class="inline" method="post" action="{% url 'request_action' r.pk 'cancel' %}"
+                        onsubmit="return confirm('{{ r.book.title|escapejs }} için olan talebinden vazgeçmek istediğine emin misin?');">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-danger">Vazgeç</button>
+                  </form>
                 {% elif r.status == 'approved' %}
-                  <form class="inline" method="post" action="{% url 'request_action' r.pk 'received' %}">{% csrf_token %}<button class="btn btn-primary btn-sm">Teslim Aldım</button></form>
-                  <form class="inline" method="post" action="{% url 'request_action' r.pk 'cancel' %}">{% csrf_token %}<button class="btn btn-sm btn-danger">Vazgeç</button></form>
+                  <form class="inline" method="post" action="{% url 'request_action' r.pk 'received' %}">
+                    {% csrf_token %}
+                    <button class="btn btn-primary btn-sm">Teslim Aldım</button>
+                  </form>
+                  <form class="inline" method="post" action="{% url 'request_action' r.pk 'cancel' %}"
+                        onsubmit="return confirm('{{ r.book.title|escapejs }} için olan talebinden vazgeçmek istediğine emin misin?');">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-danger">Vazgeç</button>
+                  </form>
                 {% endif %}
               {% endif %}
             </div>

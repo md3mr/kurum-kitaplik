@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Kitap Ekle{% endblock %}
 {% block content %}
   <div class="panel panel-wide">
@@ -9,7 +10,7 @@
     <div class="box">
       <strong>ISBN ile otomatik doldur</strong>
       <div class="row-in">
-        <input type="text" id="isbn-query" inputmode="numeric" placeholder="9789750845987">
+        <input type="text" id="isbn-query" inputmode="numeric" placeholder="9789750845987" autocomplete="off">
         <button class="btn btn-primary" type="button" id="isbn-btn">Sorgula</button>
         <button class="btn" type="button" id="scan-btn">📷 Barkod Tara</button>
       </div>
@@ -29,7 +30,8 @@
     </form>
   </div>
 
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- Yerel dosyadan yükleniyor. SRI gerekmez çünkü kendi sunucumuzdan geliyor. -->
+  <script src="{% static 'js/html5-qrcode.min.js' %}"></script>
   <script>
     const lookupUrl = "{% url 'isbn_lookup' %}";
     const q = document.getElementById("isbn-query");
@@ -41,27 +43,52 @@
     const scanMsg = document.getElementById("scan-msg");
     const scanCancel = document.getElementById("scan-cancel");
 
+    // Bozuk kapak URL'lerinde kırık ikon gösterme
+    preview.addEventListener("error", () => {
+      preview.style.display = "none";
+      preview.removeAttribute("src");
+    });
+
     function fill(id, value) {
       const el = document.getElementById(id);
       if (el) el.value = value || "";
     }
 
+    // ISBN benzeri mi? (10 veya 13 hane, isteğe bağlı X ve tire)
+    function looksLikeISBN(s) {
+      if (!s) return false;
+      const cleaned = String(s).replace(/[^0-9Xx]/g, "");
+      return cleaned.length === 10 || cleaned.length === 13;
+    }
+
     async function lookup() {
       const isbn = q.value.trim();
       if (!isbn) { msg.textContent = "Önce bir ISBN yazın."; return; }
+      if (!looksLikeISBN(isbn)) {
+        msg.textContent = "ISBN 10 veya 13 haneli olmalı. Kontrol edin.";
+        return;
+      }
       msg.textContent = "Sorgulanıyor…";
       btn.disabled = true;
       try {
         const r = await fetch(lookupUrl + "?isbn=" + encodeURIComponent(isbn));
-        const d = await r.json();
-        if (!r.ok) { msg.textContent = d.error; return; }
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          msg.textContent = d.error || "Sorgu başarısız. Bilgileri elle girebilirsiniz.";
+          return;
+        }
         fill("id_title", d.title);
         fill("id_author", d.author);
         fill("id_publisher", d.publisher);
         fill("id_isbn", d.isbn);
         fill("id_cover_url", d.cover_url);
-        if (d.cover_url) { preview.src = d.cover_url; preview.style.display = "block"; }
-        else { preview.style.display = "none"; }
+        if (d.cover_url) {
+          preview.src = d.cover_url;
+          preview.style.display = "block";
+        } else {
+          preview.style.display = "none";
+          preview.removeAttribute("src");
+        }
         msg.textContent = "Bilgiler dolduruldu. Gerekirse aşağıda düzeltebilirsiniz.";
       } catch (e) {
         msg.textContent = "Sorgu yapılamadı. Bilgileri elle girebilirsiniz.";
@@ -88,9 +115,13 @@
 
     async function onScanned(text) {
       if (scanned) return;
+      if (!looksLikeISBN(text)) {
+        scanMsg.textContent = "Bu ISBN değil gibi görünüyor, tekrar deneyin.";
+        return;
+      }
       scanned = true;
       await stopScan();
-      q.value = text;
+      q.value = String(text).replace(/[^0-9Xx]/g, "");
       lookup();
     }
 
@@ -106,8 +137,15 @@
       try {
         await scanner.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 260, height: 120 },
-            formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13] },
+          {
+            fps: 10,
+            qrbox: { width: 260, height: 120 },
+            formatsToSupport: [
+              Html5QrcodeSupportedFormats.EAN_13,
+              Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.UPC_A,
+            ],
+          },
           onScanned,
           () => {}
         );

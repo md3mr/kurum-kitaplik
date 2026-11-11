@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Bildirimler{% endblock %}
+{% block content %}
+  <section class="hero">
+    <h1>Bildirimler</h1>
+    <p class="lead">Son hareketler ve taleplerinle ilgili haberler.</p>
+  </section>
+
+  {% if notifications %}
+    <div class="list">
+      {% for n in notifications %}
+        <div class="row" style="align-items: flex-start; {% if not n.is_read %}background: rgba(255, 220, 0, 0.08);{% endif %}">
+
+          {% if n.book %}
+            <div class="thumb" style="flex-shrink: 0;">
+              {% include "includes/cover.html" with b=n.book %}
+            </div>
+          {% else %}
+            <div class="thumb" style="flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 28px;">🔔</span>
+            </div>
+          {% endif %}
+
+          <div class="info" style="flex: 1;">
+            <p style="margin: 0 0 4px;">
+              {% if not n.is_read %}
+                <span style="display: inline-block; width: 8px; height: 8px; background: #e74c3c; border-radius: 50%; margin-right: 6px;"></span>
+              {% endif %}
+              {{ n.message }}
+            </p>
+            <p class="small muted" style="margin: 0;">
+              {{ n.created_at|timesince }} önce
+            </p>
+            {% if n.link %}
+              <p style="margin: 6px 0 0;">
+                <a class="btn btn-sm" href="{{ n.link }}">İlgili sayfaya git →</a>
+              </p>
+            {% endif %}
+          </div>
+
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">
+      <div class="big">🔔</div>
+      <p>Henüz bildirimin yok.</p>
+    </div>
+  {% endif %}
+{% endblock %}

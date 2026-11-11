@@ -2,8 +2,8 @@
 {% block title %}Havuz{% endblock %}
 {% block content %}
   <section class="hero">
-    <h1>Ortak Havuz</h1>
-    <p class="lead">Arkadaşlarının kitaplıklarında ne var, bir bak ve talep et.</p>
+    <h1>Kitaplar paylaştıkça çoğalır.</h1>
+    <p class="lead">Bir kitap sende, bir kitap bende. Daha büyük bir kitaplık hepimizde.</p>
   </section>
 
   <form method="get" class="search">
@@ -33,7 +33,8 @@
                         data-url="{% url 'book_request' book.pk %}"
                         data-title="{{ book.title }}"
                         data-author="{{ book.author }}"
-                        data-owner="{{ book.owner.username }}">Kitabı Talep Et</button>
+                        data-owner="{{ book.owner.username }}"
+                        data-cover="{{ book.cover_url }}">Kitabı Talep Et</button>
               {% endif %}
             </div>
           </div>
@@ -46,6 +47,7 @@
 
   <dialog id="req-dialog">
     <h2>Talebi Onayla</h2>
+    <div class="dlg-cover" id="dlg-cover"></div>
     <p class="sub" id="dlg-book" style="margin-bottom:0"></p>
     <div class="box" style="text-align:center">
       Kitabın sahibi <strong id="dlg-owner"></strong>.<br>
@@ -64,9 +66,27 @@
     const dlg = document.getElementById("req-dialog");
     const form = document.getElementById("dlg-form");
     const send = document.getElementById("dlg-send");
+    const coverBox = document.getElementById("dlg-cover");
+
+    function showCover(url, title) {
+      coverBox.replaceChildren();
+      if (url) {
+        const img = document.createElement("img");
+        img.className = "cover";
+        img.alt = "";
+        img.src = url;
+        coverBox.appendChild(img);
+      } else {
+        const ph = document.createElement("div");
+        ph.className = "cover ph";
+        ph.textContent = (title || "?").charAt(0).toUpperCase();
+        coverBox.appendChild(ph);
+      }
+    }
 
     document.querySelectorAll("[data-request]").forEach((btn) => {
       btn.addEventListener("click", () => {
+        showCover(btn.dataset.cover, btn.dataset.title);
         document.getElementById("dlg-book").textContent =
           btn.dataset.title + " — " + btn.dataset.author;
         document.getElementById("dlg-owner").textContent = btn.dataset.owner;
@@ -81,4 +101,3 @@
     dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
   </script>
 {% endblock %}
-

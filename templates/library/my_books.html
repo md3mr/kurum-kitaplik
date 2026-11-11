@@ -23,7 +23,8 @@
               {% else %}<span class="badge">Sadece bende</span>{% endif %}
             </p>
             <div class="acts">
-              <form class="inline" method="post" action="{% url 'book_toggle_pool' book.pk %}">
+              <form class="inline" method="post" action="{% url 'book_toggle_pool' book.pk %}"
+                    onsubmit="return confirm('{{ book.title|escapejs }} havuzdan kaldırılsın mı?');">
                 {% csrf_token %}
                 <button class="btn btn-sm" type="submit">{% if book.in_pool %}Havuzdan Kaldır{% else %}Havuza Ekle{% endif %}</button>
               </form>

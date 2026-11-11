@@ -1,4 +1,27 @@
 .venv/
 .env
+.env.*
+!.env.example
 __pycache__/
 db.sqlite3
+
+# Yedekler ve arşivler
+*.rar
+*.zip
+*.7z
+*.tar.gz
+
+# Django
+staticfiles/
+media/
+*.pyc
+*.log
+
+# İşletim sistemi / IDE
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
+
+# Local yedek
+v1/

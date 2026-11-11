@@ -4,26 +4,49 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>{% block title %}Kitaplık{% endblock %} · Kitaplık</title>
+  <title>{% block title %}Elden Ele{% endblock %} · Elden Ele</title>
+  <script>
+    try {
+      var t = localStorage.getItem("theme");
+      if (t === "dark") document.documentElement.setAttribute("data-theme", "dark");
+    } catch (e) {}
+  </script>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
 <body>
   <header class="nav">
     <div class="wrap nav-inner">
-      <a class="brand" href="{% url 'home' %}">📚 Kitaplık</a>
+      <a class="brand" href="{% url 'home' %}">
+        <svg class="logo" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7c-1.8-1.6-4.2-2.2-7-2v12c2.8-.2 5.2.4 7 2 1.8-1.6 4.2-2.2 7-2V5c-2.8-.2-5.2.4-7 2z"/><path d="M12 7v12"/></svg>
+        <span class="brand-text">
+          <span class="brand-name">Elden Ele</span>
+          <span class="tagline">Kitaplar paylaştıkça çoğalır.</span>
+        </span>
+      </a>
+
       {% if user.is_authenticated %}
         <nav class="links">
           <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}on{% endif %}">Havuz</a>
           <a href="{% url 'my_books' %}" class="{% if request.resolver_match.url_name == 'my_books' or request.resolver_match.url_name == 'book_add' %}on{% endif %}">Kitaplığım</a>
           <a href="{% url 'requests' %}" class="{% if request.resolver_match.url_name == 'requests' %}on{% endif %}">Taleplerim</a>
+          <a href="{% url 'notifications' %}" class="{% if request.resolver_match.url_name == 'notifications' %}on{% endif %}">
+            Bildirimler
+            {% if unread_notifications_count > 0 %}
+              <span style="background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; margin-left: 4px; font-weight: bold;">{{ unread_notifications_count }}</span>
+            {% endif %}
+          </a>
         </nav>
-        <div class="who">
+      {% endif %}
+
+      <div class="who">
+        <button type="button" class="iconbtn" id="theme-toggle" aria-label="Gece modunu aç/kapat" title="Gece modu">🌙</button>
+        {% if user.is_authenticated %}
           <span>{{ user.username }}</span>
           <form class="inline" method="post" action="{% url 'logout' %}">
             {% csrf_token %}<button class="linkbtn" type="submit">Çıkış</button>
           </form>
-        </div>
-      {% endif %}
+        {% endif %}
+      </div>
     </div>
   </header>
 
@@ -36,5 +59,25 @@
   <main class="wrap">
     {% block content %}{% endblock %}
   </main>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById("theme-toggle");
+      function sync() {
+        var dark = root.getAttribute("data-theme") === "dark";
+        btn.textContent = dark ? "☀️" : "🌙";
+        btn.title = dark ? "Açık moda geç" : "Gece moduna geç";
+      }
+      btn.addEventListener("click", function () {
+        var dark = root.getAttribute("data-theme") === "dark";
+        if (dark) root.removeAttribute("data-theme");
+        else root.setAttribute("data-theme", "dark");
+        try { localStorage.setItem("theme", dark ? "light" : "dark"); } catch (e) {}
+        sync();
+      });
+      sync();
+    })();
+  </script>
 </body>
 </html>

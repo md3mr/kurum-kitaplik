@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 
 
 class Book(models.Model):
@@ -38,5 +39,28 @@ class BookRequest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["book", "requester"],
+                condition=Q(status__in=["pending", "approved", "received"]),
+                name="unique_active_request_per_user_book"
+            )
+        ]
+
     def __str__(self):
         return f"{self.requester} → {self.book} ({self.get_status_display()})"
+
+
+class Notification(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
+    # Kitap silinse bile bildirim kalsın; kapak gösterilemezse placeholder
+    book = models.ForeignKey(Book, null=True, blank=True, on_delete=models.SET_NULL,
+                             related_name="notifications")
+    message = models.CharField(max_length=255)
+    link = models.CharField(max_length=255, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} - {self.message[:20]}"
