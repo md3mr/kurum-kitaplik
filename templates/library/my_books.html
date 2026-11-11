@@ -1,28 +1,39 @@
 {% extends "base.html" %}
 {% block title %}Kitaplığım{% endblock %}
 {% block content %}
-  <h1>Kitaplığım ({{ books|length }})</h1>
-  <p><a href="{% url 'book_add' %}">+ Kitap Ekle</a></p>
-
-  {% for book in books %}
-    <div style="border:1px solid #ccc; padding:8px; margin:8px 0">
-      <strong>{{ book.title }}</strong> — {{ book.author }}
-      {% if book.publisher %}<br>{{ book.publisher }}{% endif %}
-      {% if book.isbn %}<br>ISBN: {{ book.isbn }}{% endif %}
-      <br>
-      {% if book.holder %}
-        🔴 Ödünç verildi: {{ book.holder.username }}
-      {% elif book.in_pool %}
-        🟢 Havuzda
-      {% else %}
-        ⚪ Sadece kitaplığımda
-      {% endif %}
-      <form method="post" action="{% url 'book_toggle_pool' book.pk %}" style="display:inline">
-        {% csrf_token %}
-        <button type="submit">{% if book.in_pool %}Havuzdan Kaldır{% else %}Havuza Ekle{% endif %}</button>
-      </form>
+  <section class="hero" style="display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap">
+    <div>
+      <h1>Kitaplığım</h1>
+      <p class="lead">{{ books|length }} kitap</p>
     </div>
-  {% empty %}
-    <p>Henüz kitap eklemedin.</p>
-  {% endfor %}
+    <a class="btn btn-primary" href="{% url 'book_add' %}">+ Kitap Ekle</a>
+  </section>
+
+  {% if books %}
+    <div class="grid" style="margin-top:24px">
+      {% for book in books %}
+        <article class="card">
+          {% include "includes/cover.html" with b=book %}
+          <div class="body">
+            <h3>{{ book.title }}</h3>
+            <p class="muted">{{ book.author }}</p>
+            <p>
+              {% if book.holder %}<span class="badge bad">Ödünç: {{ book.holder.username }}</span>
+              {% elif book.in_pool %}<span class="badge ok">Havuzda</span>
+              {% else %}<span class="badge">Sadece bende</span>{% endif %}
+            </p>
+            <div class="acts">
+              <form class="inline" method="post" action="{% url 'book_toggle_pool' book.pk %}">
+                {% csrf_token %}
+                <button class="btn btn-sm" type="submit">{% if book.in_pool %}Havuzdan Kaldır{% else %}Havuza Ekle{% endif %}</button>
+              </form>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty"><div class="big">📚</div><p>Henüz kitap eklemedin.</p>
+      <a class="btn btn-primary" href="{% url 'book_add' %}">İlk kitabını ekle</a></div>
+  {% endif %}
 {% endblock %}

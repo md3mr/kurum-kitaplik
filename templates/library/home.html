@@ -1,38 +1,44 @@
 {% extends "base.html" %}
 {% block title %}Havuz{% endblock %}
 {% block content %}
-  <h1>Ortak Havuz</h1>
+  <section class="hero">
+    <h1>Ortak Havuz</h1>
+    <p class="lead">Arkadaşlarının kitaplıklarında ne var, bir bak ve talep et.</p>
+  </section>
 
-  <form method="get">
-    <input type="text" name="q" value="{{ q }}" placeholder="Kitap adı, yazar veya ISBN ara…">
-    <label>
-      <input type="checkbox" name="show_all" value="1" {% if show_all %}checked{% endif %}>
-      Ödünç verilmiş olanları da göster
-    </label>
-    <button type="submit">Ara</button>
+  <form method="get" class="search">
+    <input type="search" name="q" value="{{ q }}" placeholder="Kitap adı, yazar veya ISBN">
+    <label class="switch"><input type="checkbox" name="show_all" value="1" {% if show_all %}checked{% endif %}> Ödünç verilenleri de göster</label>
+    <button class="btn btn-primary" type="submit">Ara</button>
   </form>
 
-  {% for book in books %}
-    <div style="border:1px solid #ccc; padding:8px; margin:8px 0; {% if book.holder %}opacity:.6{% endif %}">
-      <strong>{{ book.title }}</strong> — {{ book.author }}
-      {% if book.publisher %}<br>{{ book.publisher }}{% endif %}
-      <br>Sahibi: {{ book.owner.username }}
-      <br>
-      {% if book.holder %}
-        🔴 Şu an {{ book.holder.username }}'de
-      {% elif book.owner == user %}
-        <em>Senin kitabın</em>
-      {% elif book.pk in my_requested %}
-        ⏳ Talebin var
-      {% else %}
-        🟢 Müsait
-        <form method="post" action="{% url 'book_request' book.pk %}" style="display:inline">
-          {% csrf_token %}
-          <button type="submit">Kitabı Talep Et</button>
-        </form>
-      {% endif %}
+  {% if books %}
+    <div class="grid">
+      {% for book in books %}
+        <article class="card {% if book.holder %}dim{% endif %}">
+          {% include "includes/cover.html" with b=book %}
+          <div class="body">
+            <h3>{{ book.title }}</h3>
+            <p class="muted">{{ book.author }}</p>
+            <p class="small muted">Sahibi: {{ book.owner.username }}</p>
+            <div class="acts">
+              {% if book.holder %}
+                <span class="badge bad">{{ book.holder.username }}'de</span>
+              {% elif book.owner == user %}
+                <span class="badge">Senin kitabın</span>
+              {% elif book.pk in my_requested %}
+                <span class="badge pending">Talebin var</span>
+              {% else %}
+                <form class="inline" method="post" action="{% url 'book_request' book.pk %}">
+                  {% csrf_token %}<button class="btn btn-primary btn-sm" type="submit">Kitabı Talep Et</button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+      {% endfor %}
     </div>
-  {% empty %}
-    <p>Havuzda kitap bulunamadı.</p>
-  {% endfor %}
+  {% else %}
+    <div class="empty"><div class="big">📭</div><p>Havuzda kitap bulunamadı.</p></div>
+  {% endif %}
 {% endblock %}

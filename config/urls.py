@@ -1,10 +1,12 @@
 from django.contrib import admin
 from django.urls import include, path
 
+from accounts import views as accounts_views
 from library import views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("accounts/signup/", accounts_views.signup, name="signup"),
     path("accounts/", include("django.contrib.auth.urls")),
     path("", views.home, name="home"),
     path("books/<int:pk>/request/", views.book_request, name="book_request"),

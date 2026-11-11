@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Kayıt Ol{% endblock %}
+{% block content %}
+  <div class="panel">
+    <h1>Hesap Oluştur</h1>
+    <p class="sub">Kitaplarını paylaş, başkalarınınkini bul.</p>
+    <form method="post">
+      {% csrf_token %}
+      {% include "includes/form_fields.html" %}
+      <button class="btn btn-primary btn-block" type="submit">Kayıt Ol</button>
+    </form>
+    <p class="sub" style="margin-top:18px">Zaten hesabın var mı? <a href="{% url 'login' %}">Giriş yap</a></p>
+  </div>
+{% endblock %}

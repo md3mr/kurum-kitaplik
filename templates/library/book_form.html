@@ -1,29 +1,45 @@
 {% extends "base.html" %}
 {% block title %}Kitap Ekle{% endblock %}
 {% block content %}
-  <p><a href="{% url 'my_books' %}">← Kitaplığıma Dön</a></p>
-  <h1>Kitap Ekle</h1>
+  <div class="panel panel-wide">
+    <p><a href="{% url 'my_books' %}">‹ Kitaplığım</a></p>
+    <h1>Kitap Ekle</h1>
+    <p class="sub">ISBN'i yaz ya da barkodu okut, bilgiler kendiliğinden dolsun.</p>
 
-  <div style="border:1px solid #ccc; padding:8px; margin-bottom:12px">
-    <strong>ISBN ile otomatik doldur</strong><br>
-    <input type="text" id="isbn-query" inputmode="numeric" placeholder="9789750845987">
-    <button type="button" id="isbn-btn">ISBN'i Sorgula</button>
-    <p id="isbn-msg" style="margin:4px 0 0"></p>
-    <img id="cover-preview" alt="" style="display:none; max-height:120px; margin-top:8px">
+    <div class="box">
+      <strong>ISBN ile otomatik doldur</strong>
+      <div class="row-in">
+        <input type="text" id="isbn-query" inputmode="numeric" placeholder="9789750845987">
+        <button class="btn btn-primary" type="button" id="isbn-btn">Sorgula</button>
+        <button class="btn" type="button" id="scan-btn">📷 Barkod Tara</button>
+      </div>
+      <p class="small muted" id="isbn-msg" style="margin:8px 0 0"></p>
+      <img id="cover-preview" alt="" style="display:none;max-height:140px;margin-top:10px;border-radius:8px">
+      <div id="scan-box" style="display:none;margin-top:12px;max-width:420px">
+        <div id="reader"></div>
+        <p class="small muted" id="scan-msg">Barkodu çerçeveye hizalayın…</p>
+        <button class="btn btn-sm" type="button" id="scan-cancel">Kapat (elle gireceğim)</button>
+      </div>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      {% include "includes/form_fields.html" %}
+      <button class="btn btn-primary btn-block" type="submit">Kaydet</button>
+    </form>
   </div>
 
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Kaydet</button>
-  </form>
-
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script>
     const lookupUrl = "{% url 'isbn_lookup' %}";
     const q = document.getElementById("isbn-query");
     const btn = document.getElementById("isbn-btn");
     const msg = document.getElementById("isbn-msg");
     const preview = document.getElementById("cover-preview");
+    const scanBtn = document.getElementById("scan-btn");
+    const scanBox = document.getElementById("scan-box");
+    const scanMsg = document.getElementById("scan-msg");
+    const scanCancel = document.getElementById("scan-cancel");
 
     function fill(id, value) {
       const el = document.getElementById(id);
@@ -58,5 +74,51 @@
     q.addEventListener("keydown", (e) => {
       if (e.key === "Enter") { e.preventDefault(); lookup(); }
     });
+
+    let scanner = null;
+    let scanned = false;
+
+    async function stopScan() {
+      if (scanner) {
+        try { await scanner.stop(); scanner.clear(); } catch (e) {}
+        scanner = null;
+      }
+      scanBox.style.display = "none";
+    }
+
+    async function onScanned(text) {
+      if (scanned) return;
+      scanned = true;
+      await stopScan();
+      q.value = text;
+      lookup();
+    }
+
+    async function startScan() {
+      if (typeof Html5Qrcode === "undefined") {
+        msg.textContent = "Tarama kütüphanesi yüklenemedi. ISBN'i elle girebilirsiniz.";
+        return;
+      }
+      scanned = false;
+      scanMsg.textContent = "Kamera açılıyor…";
+      scanBox.style.display = "block";
+      scanner = new Html5Qrcode("reader");
+      try {
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 260, height: 120 },
+            formatsToSupport: [Html5QrcodeSupportedFormats.EAN_13] },
+          onScanned,
+          () => {}
+        );
+        scanMsg.textContent = "Barkodu çerçeveye hizalayın…";
+      } catch (e) {
+        await stopScan();
+        msg.textContent = "Kameraya erişilemedi (izin verilmemiş ya da kamera yok). ISBN'i elle girebilirsiniz.";
+      }
+    }
+
+    scanBtn.addEventListener("click", startScan);
+    scanCancel.addEventListener("click", stopScan);
   </script>
 {% endblock %}
