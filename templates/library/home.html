@@ -41,6 +41,19 @@
         </article>
       {% endfor %}
     </div>
+
+    {# PAGINATION #}
+    {% if page_obj.has_other_pages %}
+      <nav style="display:flex;gap:8px;justify-content:center;margin-top:24px;align-items:center">
+        {% if page_obj.has_previous %}
+          <a class="btn btn-sm" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if show_all %}&show_all=1{% endif %}">‹ Önceki</a>
+        {% endif %}
+        <span class="small muted">Sayfa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a class="btn btn-sm" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}{% if show_all %}&show_all=1{% endif %}">Sonraki ›</a>
+        {% endif %}
+      </nav>
+    {% endif %}
   {% else %}
     <div class="empty"><div class="big">📭</div><p>Havuzda kitap bulunamadı.</p></div>
   {% endif %}
@@ -75,6 +88,7 @@
         img.className = "cover";
         img.alt = "";
         img.src = url;
+        img.onerror = () => { coverBox.replaceChildren(); showCover("", title); };
         coverBox.appendChild(img);
       } else {
         const ph = document.createElement("div");
@@ -86,6 +100,7 @@
 
     document.querySelectorAll("[data-request]").forEach((btn) => {
       btn.addEventListener("click", () => {
+        if (!btn.dataset.url) return;
         showCover(btn.dataset.cover, btn.dataset.title);
         document.getElementById("dlg-book").textContent =
           btn.dataset.title + " — " + btn.dataset.author;

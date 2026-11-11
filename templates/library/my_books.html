@@ -4,7 +4,7 @@
   <section class="hero" style="display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap">
     <div>
       <h1>Kitaplığım</h1>
-      <p class="lead">{{ books|length }} kitap</p>
+      <p class="lead">{{ page_obj.paginator.count }} kitap</p>
     </div>
     <a class="btn btn-primary" href="{% url 'book_add' %}">+ Kitap Ekle</a>
   </section>
@@ -33,6 +33,19 @@
         </article>
       {% endfor %}
     </div>
+
+    {# PAGINATION #}
+    {% if page_obj.has_other_pages %}
+      <nav style="display:flex;gap:8px;justify-content:center;margin-top:24px;align-items:center">
+        {% if page_obj.has_previous %}
+          <a class="btn btn-sm" href="?page={{ page_obj.previous_page_number }}">‹ Önceki</a>
+        {% endif %}
+        <span class="small muted">Sayfa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a class="btn btn-sm" href="?page={{ page_obj.next_page_number }}">Sonraki ›</a>
+        {% endif %}
+      </nav>
+    {% endif %}
   {% else %}
     <div class="empty"><div class="big">📚</div><p>Henüz kitap eklemedin.</p>
       <a class="btn btn-primary" href="{% url 'book_add' %}">İlk kitabını ekle</a></div>

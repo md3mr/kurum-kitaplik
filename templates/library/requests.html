@@ -65,6 +65,19 @@
         </div>
       {% endfor %}
     </div>
+
+    {# PAGINATION #}
+    {% if page_obj.has_other_pages %}
+      <nav style="display:flex;gap:8px;justify-content:center;margin-top:24px;align-items:center">
+        {% if page_obj.has_previous %}
+          <a class="btn btn-sm" href="?tab={{ tab }}&page={{ page_obj.previous_page_number }}">‹ Önceki</a>
+        {% endif %}
+        <span class="small muted">Sayfa {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a class="btn btn-sm" href="?tab={{ tab }}&page={{ page_obj.next_page_number }}">Sonraki ›</a>
+        {% endif %}
+      </nav>
+    {% endif %}
   {% else %}
     <div class="empty"><div class="big">📬</div><p>Henüz talep yok.</p></div>
   {% endif %}

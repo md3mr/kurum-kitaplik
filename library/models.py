@@ -12,9 +12,16 @@ class Book(models.Model):
     author = models.CharField(max_length=300)
     publisher = models.CharField(max_length=200, blank=True)
     isbn = models.CharField(max_length=13, blank=True, db_index=True)
-    cover_url = models.URLField(blank=True)
+    # Kapak URL'leri bazen 200 karakteri geçebiliyor
+    cover_url = models.URLField(blank=True, max_length=500)
     in_pool = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            # Havuz ekranı: in_pool=True ve holder__isnull=True sık sorgulanıyor
+            models.Index(fields=["in_pool", "holder"], name="book_pool_idx"),
+        ]
 
     def __str__(self):
         return f"{self.title} — {self.author}"
@@ -47,6 +54,11 @@ class BookRequest(models.Model):
                 name="unique_active_request_per_user_book"
             )
         ]
+        indexes = [
+            models.Index(fields=["owner", "status"], name="req_owner_status_idx"),
+            models.Index(fields=["requester", "status"], name="req_requester_status_idx"),
+            models.Index(fields=["book", "status"], name="req_book_status_idx"),
+        ]
 
     def __str__(self):
         return f"{self.requester} → {self.book} ({self.get_status_display()})"
@@ -54,13 +66,18 @@ class BookRequest(models.Model):
 
 class Notification(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
-    # Kitap silinse bile bildirim kalsın; kapak gösterilemezse placeholder
     book = models.ForeignKey(Book, null=True, blank=True, on_delete=models.SET_NULL,
                              related_name="notifications")
     message = models.CharField(max_length=255)
     link = models.CharField(max_length=255, blank=True)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user", "is_read"], name="notif_user_read_idx"),
+            models.Index(fields=["user", "-created_at"], name="notif_user_created_idx"),
+        ]
 
     def __str__(self):
         return f"{self.user} - {self.message[:20]}"

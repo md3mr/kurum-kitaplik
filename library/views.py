@@ -1,7 +1,8 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import F, Q
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -17,6 +18,14 @@ ACTIVE_STATUSES = [
 
 VALID_REQUEST_ACTIONS = {"approve", "reject", "cancel", "received", "returned"}
 
+PAGE_SIZE = 30
+
+
+def _paginate(request, queryset):
+    """Verilen queryset'i sayfalar; sayfa numarası request.GET['page']'den gelir."""
+    paginator = Paginator(queryset, PAGE_SIZE)
+    return paginator.get_page(request.GET.get("page"))
+
 
 @login_required
 def home(request):
@@ -30,7 +39,11 @@ def home(request):
         )
     if not show_all:
         books = books.filter(holder__isnull=True)
-    books = books.order_by("holder", "-created_at")
+
+    # Müsait kitaplar (holder NULL) önce gelsin — PostgreSQL ve MySQL'de tutarlı
+    books = books.order_by(F("holder").asc(nulls_first=True), "-created_at")
+
+    books_page = _paginate(request, books)
 
     my_requested = set(
         BookRequest.objects.filter(
@@ -38,7 +51,8 @@ def home(request):
         ).values_list("book_id", flat=True)
     )
     return render(request, "library/home.html", {
-        "books": books,
+        "books": books_page,
+        "page_obj": books_page,
         "q": q,
         "show_all": show_all,
         "my_requested": my_requested,
@@ -67,7 +81,6 @@ def book_request(request, pk):
     if request.method == "POST":
         BookRequest.objects.create(book=book, requester=request.user, owner=book.owner)
 
-        # Kitap sahibine: kim, hangi kitabı istedi
         Notification.objects.create(
             user=book.owner,
             book=book,
@@ -86,8 +99,16 @@ def book_request(request, pk):
 
 @login_required
 def my_books(request):
-    books = Book.objects.filter(owner=request.user).order_by("-created_at")
-    return render(request, "library/my_books.html", {"books": books})
+    books = (
+        Book.objects.filter(owner=request.user)
+        .select_related("holder")
+        .order_by("-created_at")
+    )
+    books_page = _paginate(request, books)
+    return render(request, "library/my_books.html", {
+        "books": books_page,
+        "page_obj": books_page,
+    })
 
 
 @login_required
@@ -153,12 +174,15 @@ def requests_list(request):
         tab = "in"
         items = base.filter(owner=request.user).order_by("-created_at")
 
+    items_page = _paginate(request, items)
+
     incoming_open = BookRequest.objects.filter(
         owner=request.user,
         status__in=[BookRequest.Status.PENDING, BookRequest.Status.RECEIVED],
     ).count()
     return render(request, "library/requests.html", {
-        "items": items,
+        "items": items_page,
+        "page_obj": items_page,
         "tab": tab,
         "incoming_open": incoming_open,
     })
@@ -197,7 +221,6 @@ def request_action(request, pk, action):
     is_requester = req.requester_id == me.id
     tab = "in" if is_owner else "out"
 
-    # Bildirim mesajlarında kullanılacak kısa değişkenler
     kitap = book.title
     isteyen = req.requester.username
     sahip = req.owner.username
@@ -227,9 +250,7 @@ def request_action(request, pk, action):
         Notification.objects.create(
             user=req.requester,
             book=book,
-            message=(
-                f"'{kitap}' için {sahip} tarafından gönderilen talebin reddedildi."
-            ),
+            message=f"'{kitap}' için {sahip} tarafından gönderilen talebin reddedildi.",
             link="/requests/?tab=out",
         )
         messages.info(request, "Talep reddedildi.")
@@ -243,9 +264,7 @@ def request_action(request, pk, action):
         Notification.objects.create(
             user=req.owner,
             book=book,
-            message=(
-                f"{isteyen}, '{kitap}' için {sahip}'a gönderdiği talebinden vazgeçti."
-            ),
+            message=f"{isteyen}, '{kitap}' için {sahip}'a gönderdiği talebinden vazgeçti.",
             link="/requests/?tab=in",
         )
         messages.info(request, "Talepten vazgeçildi.")
@@ -256,9 +275,7 @@ def request_action(request, pk, action):
         Notification.objects.create(
             user=req.owner,
             book=book,
-            message=(
-                f"{isteyen}, '{kitap}' için {sahip}'tan aldığı kitabı teslim aldı."
-            ),
+            message=f"{isteyen}, '{kitap}' için {sahip}'tan aldığı kitabı teslim aldı.",
             link="/requests/?tab=in",
         )
         messages.success(request, "Teslim alındı olarak işaretlendi.")
@@ -271,9 +288,7 @@ def request_action(request, pk, action):
         Notification.objects.create(
             user=req.requester,
             book=book,
-            message=(
-                f"'{kitap}' için {sahip}'a verdiğin kitap iade alındı. Teşekkürler!"
-            ),
+            message=f"'{kitap}' için {sahip}'a verdiğin kitap iade alındı. Teşekkürler!",
             link="/requests/?tab=out",
         )
         messages.success(request, "Kitap iade alındı, tekrar havuzda müsait.")
