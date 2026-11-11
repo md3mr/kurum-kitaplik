@@ -3,9 +3,60 @@
 {% block content %}
   <p><a href="{% url 'my_books' %}">← Kitaplığıma Dön</a></p>
   <h1>Kitap Ekle</h1>
+
+  <div style="border:1px solid #ccc; padding:8px; margin-bottom:12px">
+    <strong>ISBN ile otomatik doldur</strong><br>
+    <input type="text" id="isbn-query" inputmode="numeric" placeholder="9789750845987">
+    <button type="button" id="isbn-btn">ISBN'i Sorgula</button>
+    <p id="isbn-msg" style="margin:4px 0 0"></p>
+    <img id="cover-preview" alt="" style="display:none; max-height:120px; margin-top:8px">
+  </div>
+
   <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
     <button type="submit">Kaydet</button>
   </form>
+
+  <script>
+    const lookupUrl = "{% url 'isbn_lookup' %}";
+    const q = document.getElementById("isbn-query");
+    const btn = document.getElementById("isbn-btn");
+    const msg = document.getElementById("isbn-msg");
+    const preview = document.getElementById("cover-preview");
+
+    function fill(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.value = value || "";
+    }
+
+    async function lookup() {
+      const isbn = q.value.trim();
+      if (!isbn) { msg.textContent = "Önce bir ISBN yazın."; return; }
+      msg.textContent = "Sorgulanıyor…";
+      btn.disabled = true;
+      try {
+        const r = await fetch(lookupUrl + "?isbn=" + encodeURIComponent(isbn));
+        const d = await r.json();
+        if (!r.ok) { msg.textContent = d.error; return; }
+        fill("id_title", d.title);
+        fill("id_author", d.author);
+        fill("id_publisher", d.publisher);
+        fill("id_isbn", d.isbn);
+        fill("id_cover_url", d.cover_url);
+        if (d.cover_url) { preview.src = d.cover_url; preview.style.display = "block"; }
+        else { preview.style.display = "none"; }
+        msg.textContent = "Bilgiler dolduruldu. Gerekirse aşağıda düzeltebilirsiniz.";
+      } catch (e) {
+        msg.textContent = "Sorgu yapılamadı. Bilgileri elle girebilirsiniz.";
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    btn.addEventListener("click", lookup);
+    q.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); lookup(); }
+    });
+  </script>
 {% endblock %}

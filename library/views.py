@@ -2,10 +2,12 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import BookForm
 from .models import Book, BookRequest
+from .services import lookup_isbn
 
 ACTIVE_STATUSES = [
     BookRequest.Status.PENDING,
@@ -79,6 +81,23 @@ def book_add(request):
     else:
         form = BookForm()
     return render(request, "library/book_form.html", {"form": form})
+
+
+@login_required
+def isbn_lookup(request):
+    try:
+        result = lookup_isbn(request.GET.get("isbn", ""))
+    except (OSError, ValueError):
+        return JsonResponse(
+            {"error": "Kitap servisine ulaşılamadı. Bilgileri elle girebilirsiniz."},
+            status=502,
+        )
+    if result is None:
+        return JsonResponse(
+            {"error": "Bu ISBN bulunamadı. Bilgileri elle girebilirsiniz."},
+            status=404,
+        )
+    return JsonResponse(result)
 
 
 @login_required
