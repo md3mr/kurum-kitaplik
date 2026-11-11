@@ -29,9 +29,11 @@
               {% elif book.pk in my_requested %}
                 <span class="badge pending">Talebin var</span>
               {% else %}
-                <form class="inline" method="post" action="{% url 'book_request' book.pk %}">
-                  {% csrf_token %}<button class="btn btn-primary btn-sm" type="submit">Kitabı Talep Et</button>
-                </form>
+                <button type="button" class="btn btn-primary btn-sm" data-request
+                        data-url="{% url 'book_request' book.pk %}"
+                        data-title="{{ book.title }}"
+                        data-author="{{ book.author }}"
+                        data-owner="{{ book.owner.username }}">Kitabı Talep Et</button>
               {% endif %}
             </div>
           </div>
@@ -41,4 +43,42 @@
   {% else %}
     <div class="empty"><div class="big">📭</div><p>Havuzda kitap bulunamadı.</p></div>
   {% endif %}
+
+  <dialog id="req-dialog">
+    <h2>Talebi Onayla</h2>
+    <p class="sub" id="dlg-book" style="margin-bottom:0"></p>
+    <div class="box" style="text-align:center">
+      Kitabın sahibi <strong id="dlg-owner"></strong>.<br>
+      Talebiniz ona iletilecek. Onaylıyor musunuz?
+    </div>
+    <form method="post" id="dlg-form">
+      {% csrf_token %}
+      <button class="btn btn-primary btn-block" type="submit" id="dlg-send">Evet, talep gönder</button>
+    </form>
+    <p style="text-align:center;margin:14px 0 0">
+      <button type="button" class="linkbtn" id="dlg-cancel" style="font-size:15px">Vazgeç</button>
+    </p>
+  </dialog>
+
+  <script>
+    const dlg = document.getElementById("req-dialog");
+    const form = document.getElementById("dlg-form");
+    const send = document.getElementById("dlg-send");
+
+    document.querySelectorAll("[data-request]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.getElementById("dlg-book").textContent =
+          btn.dataset.title + " — " + btn.dataset.author;
+        document.getElementById("dlg-owner").textContent = btn.dataset.owner;
+        form.action = btn.dataset.url;
+        send.disabled = false;
+        dlg.showModal();
+      });
+    });
+
+    form.addEventListener("submit", () => { send.disabled = true; });
+    document.getElementById("dlg-cancel").addEventListener("click", () => dlg.close());
+    dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
+  </script>
 {% endblock %}
+

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Talebi Onayla{% endblock %}
+{% block content %}
+  <div class="panel">
+    <h1>Talebi Onayla</h1>
+    <p class="sub">Bu kitap için talep gönderilecek.</p>
+
+    <div style="width:120px;margin:16px auto;border-radius:12px;overflow:hidden">
+      {% include "includes/cover.html" with b=book %}
+    </div>
+
+    <p style="text-align:center;margin:0">
+      <strong>{{ book.title }}</strong><br>
+      <span class="muted">{{ book.author }}</span>
+    </p>
+
+    <div class="box" style="text-align:center">
+      Kitabın sahibi <strong>{{ book.owner.username }}</strong>.<br>
+      Talebiniz ona iletilecek. Onaylıyor musunuz?
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <button class="btn btn-primary btn-block" type="submit">Evet, talep gönder</button>
+    </form>
+    <p style="text-align:center;margin:14px 0 0"><a href="{% url 'home' %}">Vazgeç</a></p>
+  </div>
+{% endblock %}

@@ -45,22 +45,28 @@ def home(request):
 
 @login_required
 def book_request(request, pk):
-    if request.method != "POST":
-        return redirect("home")
-    book = get_object_or_404(Book, pk=pk, in_pool=True)
+    book = get_object_or_404(
+        Book.objects.select_related("owner", "holder"), pk=pk, in_pool=True
+    )
+
     if book.owner == request.user:
         messages.error(request, "Bu kitap zaten senin.")
-    elif book.holder:
+        return redirect("home")
+    if book.holder:
         messages.error(request, "Bu kitap şu an başkasında.")
-    elif BookRequest.objects.filter(
+        return redirect("home")
+    if BookRequest.objects.filter(
         book=book, requester=request.user, status__in=ACTIVE_STATUSES
     ).exists():
         messages.info(request, "Bu kitap için zaten bir talebin var.")
-    else:
-        BookRequest.objects.create(book=book, requester=request.user, owner=book.owner)
-        messages.success(request, "Talebin sahibine iletildi.")
-    return redirect("home")
+        return redirect("home")
 
+    if request.method == "POST":
+        BookRequest.objects.create(book=book, requester=request.user, owner=book.owner)
+        messages.success(request, f"Talebin {book.owner.username} adlı kişiye iletildi.")
+        return redirect("home")
+
+    return render(request, "library/request_confirm.html", {"book": book})
 
 @login_required
 def my_books(request):
